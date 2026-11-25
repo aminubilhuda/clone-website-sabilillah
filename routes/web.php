@@ -140,6 +140,9 @@ Route::prefix('admin')
         Route::get('pengaturan', [SettingController::class, 'edit'])->name('settings.edit');
         Route::put('pengaturan', [SettingController::class, 'update'])->name('settings.update');
         Route::get('media-library', [MediaLibraryController::class, 'index'])->name('media.index');
+        Route::get('media', [MediaLibraryController::class, 'manage'])->name('media.manage');
+        Route::post('media', [MediaLibraryController::class, 'store'])->name('media.store');
+        Route::delete('media', [MediaLibraryController::class, 'destroy'])->name('media.destroy');
 
         Route::middleware('can:manage-users')->group(function (): void {
             Route::resource('users', UserController::class)->except('show');

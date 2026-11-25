@@ -140,7 +140,7 @@
             const gridEl = document.getElementById('mediaPickerGrid');
             const emptyEl = document.getElementById('mediaPickerEmpty');
             const searchEl = document.getElementById('mediaPickerSearch');
-            const endpoint = @json(route('admin.media.index'));
+            const endpoint = @json(route('admin.media.index', [], false));
             let activePicker = null;
             let cachedItems = null;
             let backdropEl = null;
@@ -278,6 +278,59 @@
 
             searchEl?.addEventListener('input', () => {
                 if (cachedItems) renderItems(cachedItems);
+            });
+
+            /* ---------- Offcanvas sidebar (mobile) & alert dismiss ---------- */
+            let offcanvasBackdrop = null;
+            const closeOffcanvas = (el) => {
+                if (!el) return;
+                el.classList.remove('show');
+                el.style.visibility = '';
+                el.removeAttribute('aria-modal');
+                el.setAttribute('aria-hidden', 'true');
+                if (offcanvasBackdrop) {
+                    offcanvasBackdrop.remove();
+                    offcanvasBackdrop = null;
+                }
+            };
+
+            document.addEventListener('click', (e) => {
+                const toggleBtn = e.target.closest('[data-bs-toggle="offcanvas"]');
+                if (toggleBtn) {
+                    const targetSelector = toggleBtn.getAttribute('data-bs-target') || toggleBtn.getAttribute('href');
+                    const offcanvasEl = targetSelector ? document.querySelector(targetSelector) : null;
+                    if (!offcanvasEl) return;
+
+                    offcanvasEl.style.visibility = 'visible';
+                    offcanvasEl.classList.add('show');
+                    offcanvasEl.removeAttribute('aria-hidden');
+                    offcanvasEl.setAttribute('aria-modal', 'true');
+
+                    if (!offcanvasBackdrop) {
+                        offcanvasBackdrop = document.createElement('div');
+                        offcanvasBackdrop.className = 'offcanvas-backdrop fade show';
+                        offcanvasBackdrop.addEventListener('click', () => closeOffcanvas(offcanvasEl));
+                        document.body.appendChild(offcanvasBackdrop);
+                    }
+                    return;
+                }
+
+                const dismissOffcanvas = e.target.closest('[data-bs-dismiss="offcanvas"]');
+                if (dismissOffcanvas) {
+                    closeOffcanvas(dismissOffcanvas.closest('.offcanvas'));
+                    return;
+                }
+
+                const dismissAlert = e.target.closest('[data-bs-dismiss="alert"]');
+                if (dismissAlert) {
+                    dismissAlert.closest('.alert')?.remove();
+                }
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeOffcanvas(document.querySelector('.offcanvas.show'));
+                }
             });
         });
     </script>

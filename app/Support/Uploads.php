@@ -68,7 +68,13 @@ class Uploads
      *
      * @return list<array{path: string, url: string, name: string, size: int}>
      */
-    public static function listImages(): array
+    /**
+     * Daftar gambar yang pernah diunggah pada disk publik (uploads/),
+     * dan opsional gambar bawaan di public/img/.
+     *
+     * @return list<array{path: string, url: string, name: string, size: int, source: string, refs?: int}>
+     */
+    public static function listImages(bool $includeBundled = false, bool $withRefs = false): array
     {
         $disk = Storage::disk('public');
         $items = [];
@@ -80,9 +86,10 @@ class Uploads
 
             $items[$path] = [
                 'path' => $path,
-                'url' => Media::url($path),
+                'url' => '/storage/'.$path,
                 'name' => basename($path),
                 'size' => $disk->size($path),
+                'source' => 'uploads',
             ];
         }
 
@@ -100,16 +107,79 @@ class Uploads
 
                 $items[$relative] ??= [
                     'path' => $relative,
-                    'url' => Media::url($relative),
+                    'url' => '/storage/'.$relative,
                     'name' => $file->getFilename(),
                     'size' => $file->getSize(),
+                    'source' => 'uploads',
                 ];
             }
         }
 
         krsort($items);
 
-        return array_values($items);
+        if ($includeBundled) {
+            $bundled = [];
+            $imgDir = public_path('img');
+
+            if (is_dir($imgDir)) {
+                $bundledExts = [...self::IMAGE_EXTENSIONS, 'svg'];
+
+                foreach (File::allFiles($imgDir) as $file) {
+                    $ext = strtolower($file->getExtension());
+
+                    if (! in_array($ext, $bundledExts, true)) {
+                        continue;
+                    }
+
+                    $relative = 'img/'.ltrim(str_replace('\\', '/', $file->getRelativePathname()), '/');
+
+                    $bundled[$relative] = [
+                        'path' => $relative,
+                        'url' => '/'.$relative,
+                        'name' => $file->getFilename(),
+                        'size' => $file->getSize(),
+                        'source' => 'img',
+                    ];
+                }
+            }
+
+            ksort($bundled);
+            $items = array_merge($items, $bundled);
+        }
+
+        $list = array_values($items);
+
+        if ($withRefs) {
+            foreach ($list as &$item) {
+                $item['refs'] = self::referenceCount($item['path']);
+            }
+        }
+
+        return $list;
+    }
+
+    /**
+     * Menghapus file upload berdasarkan path relatifnya (hanya folder uploads/).
+     */
+    public static function forceDeleteUpload(string $path): bool
+    {
+        if (! self::isValidExistingImage($path)) {
+            return false;
+        }
+
+        $deleted = false;
+
+        if (Storage::disk('public')->exists($path)) {
+            $deleted = Storage::disk('public')->delete($path) || $deleted;
+        }
+
+        $publicFile = public_path('storage/'.$path);
+
+        if (is_file($publicFile)) {
+            $deleted = @unlink($publicFile) || $deleted;
+        }
+
+        return $deleted;
     }
 
     /**
@@ -137,7 +207,7 @@ class Uploads
     /**
      * Menghitung jumlah record di database yang masih merujuk path ini.
      */
-    private static function referenceCount(string $path): int
+    public static function referenceCount(string $path): int
     {
         $count = 0;
         $count += Post::withTrashed()->where('cover_image', $path)->orWhere('document_path', $path)->count();

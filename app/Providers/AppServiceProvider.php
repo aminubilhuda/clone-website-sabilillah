@@ -47,6 +47,7 @@ class AppServiceProvider extends ServiceProvider
                     ['url' => route('admin.ppdb-applicants.index'), 'aktif' => url('admin/ppdb-applicants').'*', 'icon' => 'fa-user-graduate', 'label' => 'Pendaftar PPDB'],
                 ],
                 'Media & Kemitraan' => [
+                    ['url' => route('admin.media.manage'), 'aktif' => url('admin/media').'*', 'icon' => 'fa-folder-open', 'label' => 'Kelola Media'],
                     ['url' => route('admin.albums.index'), 'aktif' => url('admin/albums').'*', 'icon' => 'fa-photo-video', 'label' => 'Galeri / Album'],
                     ['url' => route('admin.partners.index'), 'aktif' => url('admin/partners').'*', 'icon' => 'fa-handshake', 'label' => 'Mitra & Sertifikasi'],
                     ['url' => route('admin.extracurriculars.index'), 'aktif' => url('admin/extracurriculars').'*', 'icon' => 'fa-futbol', 'label' => 'Ekstrakurikuler'],

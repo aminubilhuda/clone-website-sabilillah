@@ -83,4 +83,34 @@ class MediaLibraryTest extends TestCase
         $post = Post::query()->where('title', 'Berita Path Tidak Valid')->firstOrFail();
         $this->assertNull($post->cover_image);
     }
+
+    public function test_staff_can_manage_upload_and_delete_media_in_media_manager(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)
+            ->get(route('admin.media.manage'))
+            ->assertOk()
+            ->assertSee('Kelola Media');
+
+        $this->actingAs($admin)
+            ->post(route('admin.media.store'), [
+                'file' => UploadedFile::fake()->image('galeri-baru.png', 300, 300),
+            ])
+            ->assertRedirect(route('admin.media.manage'));
+
+        $files = Storage::disk('public')->allFiles('uploads');
+        $this->assertCount(1, $files);
+        $path = $files[0];
+
+        $this->assertContains($path, array_column(\App\Support\Uploads::listImages(), 'path'));
+
+        $this->actingAs($admin)
+            ->delete(route('admin.media.destroy'), ['path' => $path])
+            ->assertRedirect(route('admin.media.manage'));
+
+        Storage::disk('public')->assertMissing($path);
+    }
 }
