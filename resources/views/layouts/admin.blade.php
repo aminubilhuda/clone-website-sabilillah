@@ -143,6 +143,51 @@
             const endpoint = @json(route('admin.media.index'));
             let activePicker = null;
             let cachedItems = null;
+            let backdropEl = null;
+
+            const openModal = async (picker) => {
+                activePicker = picker;
+                if (searchEl) searchEl.value = '';
+
+                if (!backdropEl) {
+                    backdropEl = document.createElement('div');
+                    backdropEl.className = 'modal-backdrop fade show';
+                    document.body.appendChild(backdropEl);
+                }
+
+                modalEl.style.display = 'block';
+                modalEl.classList.add('show');
+                modalEl.removeAttribute('aria-hidden');
+                modalEl.setAttribute('aria-modal', 'true');
+                document.body.classList.add('modal-open');
+
+                if (cachedItems === null) {
+                    gridEl.innerHTML = '<div class="col-12 text-center text-muted py-4">Memuat media...</div>';
+                    emptyEl.classList.add('d-none');
+                    try {
+                        const res = await fetch(endpoint, { headers: { 'Accept': 'application/json' } });
+                        const data = await res.json();
+                        cachedItems = Array.isArray(data.items) ? data.items : [];
+                    } catch {
+                        cachedItems = [];
+                    }
+                }
+
+                renderItems(cachedItems);
+            };
+
+            const closeModal = () => {
+                modalEl.classList.remove('show');
+                modalEl.style.display = 'none';
+                modalEl.setAttribute('aria-hidden', 'true');
+                modalEl.removeAttribute('aria-modal');
+                document.body.classList.remove('modal-open');
+
+                if (backdropEl) {
+                    backdropEl.remove();
+                    backdropEl = null;
+                }
+            };
 
             const renderItems = (items) => {
                 const q = (searchEl?.value || '').trim().toLowerCase();
@@ -187,13 +232,31 @@
                             badge.classList.remove('d-none');
                         }
 
-                        bootstrap.Modal.getInstance(modalEl)?.hide();
+                        closeModal();
                     });
 
                     col.appendChild(btn);
                     gridEl.appendChild(col);
                 });
             };
+
+            document.addEventListener('click', (e) => {
+                const openBtn = e.target.closest('[data-media-open]');
+                if (openBtn) {
+                    openModal(openBtn.closest('[data-media-picker]'));
+                    return;
+                }
+
+                if (e.target.closest('[data-bs-dismiss="modal"]') || e.target === modalEl) {
+                    closeModal();
+                }
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && modalEl.classList.contains('show')) {
+                    closeModal();
+                }
+            });
 
             document.addEventListener('change', (e) => {
                 const fileInput = e.target.closest('[data-media-file]');
@@ -213,25 +276,6 @@
                         badge.classList.remove('d-none');
                     }
                 }
-            });
-
-            modalEl.addEventListener('show.bs.modal', async (event) => {
-                activePicker = event.relatedTarget?.closest('[data-media-picker]') || null;
-                if (searchEl) searchEl.value = '';
-
-                if (cachedItems === null) {
-                    gridEl.innerHTML = '<div class="col-12 text-center text-muted py-4">Memuat media...</div>';
-                    emptyEl.classList.add('d-none');
-                    try {
-                        const res = await fetch(endpoint, { headers: { 'Accept': 'application/json' } });
-                        const data = await res.json();
-                        cachedItems = Array.isArray(data.items) ? data.items : [];
-                    } catch {
-                        cachedItems = [];
-                    }
-                }
-
-                renderItems(cachedItems);
             });
 
             searchEl?.addEventListener('input', () => {

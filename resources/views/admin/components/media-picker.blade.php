@@ -24,8 +24,6 @@
             class="form-control @error($name) is-invalid @enderror">
         <button type="button"
             class="btn btn-outline-primary"
-            data-bs-toggle="modal"
-            data-bs-target="#mediaPickerModal"
             data-media-open>
             <i class="fa fa-images me-1"></i>Pilih Media
         </button>
