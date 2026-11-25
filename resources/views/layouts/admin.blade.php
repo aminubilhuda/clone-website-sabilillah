@@ -161,16 +161,14 @@
                 modalEl.setAttribute('aria-modal', 'true');
                 document.body.classList.add('modal-open');
 
-                if (cachedItems === null) {
-                    gridEl.innerHTML = '<div class="col-12 text-center text-muted py-4">Memuat media...</div>';
-                    emptyEl.classList.add('d-none');
-                    try {
-                        const res = await fetch(endpoint, { headers: { 'Accept': 'application/json' } });
-                        const data = await res.json();
-                        cachedItems = Array.isArray(data.items) ? data.items : [];
-                    } catch {
-                        cachedItems = [];
-                    }
+                gridEl.innerHTML = '<div class="col-12 text-center text-muted py-4">Memuat media...</div>';
+                emptyEl.classList.add('d-none');
+                try {
+                    const res = await fetch(endpoint, { headers: { 'Accept': 'application/json' } });
+                    const data = await res.json();
+                    cachedItems = Array.isArray(data.items) ? data.items : [];
+                } catch {
+                    cachedItems = [];
                 }
 
                 renderItems(cachedItems);

@@ -11,6 +11,7 @@ use App\Models\Popup;
 use App\Models\Post;
 use App\Models\Setting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 
 class Uploads
@@ -70,22 +71,45 @@ class Uploads
     public static function listImages(): array
     {
         $disk = Storage::disk('public');
+        $items = [];
 
-        if (! $disk->exists('uploads')) {
-            return [];
+        foreach ($disk->allFiles('uploads') as $path) {
+            if (! in_array(strtolower(pathinfo($path, PATHINFO_EXTENSION)), self::IMAGE_EXTENSIONS, true)) {
+                continue;
+            }
+
+            $items[$path] = [
+                'path' => $path,
+                'url' => Media::url($path),
+                'name' => basename($path),
+                'size' => $disk->size($path),
+            ];
         }
 
-        $files = collect($disk->allFiles('uploads'))
-            ->filter(fn (string $path): bool => in_array(strtolower(pathinfo($path, PATHINFO_EXTENSION)), self::IMAGE_EXTENSIONS, true))
-            ->sortDesc()
-            ->values();
+        $publicUploads = public_path('storage/uploads');
 
-        return $files->map(fn (string $path): array => [
-            'path' => $path,
-            'url' => Media::url($path),
-            'name' => basename($path),
-            'size' => $disk->size($path),
-        ])->all();
+        if (is_dir($publicUploads)) {
+            foreach (File::allFiles($publicUploads) as $file) {
+                $ext = strtolower($file->getExtension());
+
+                if (! in_array($ext, self::IMAGE_EXTENSIONS, true)) {
+                    continue;
+                }
+
+                $relative = 'uploads/'.ltrim(str_replace('\\', '/', $file->getRelativePathname()), '/');
+
+                $items[$relative] ??= [
+                    'path' => $relative,
+                    'url' => Media::url($relative),
+                    'name' => $file->getFilename(),
+                    'size' => $file->getSize(),
+                ];
+            }
+        }
+
+        krsort($items);
+
+        return array_values($items);
     }
 
     /**
@@ -107,7 +131,7 @@ class Uploads
             return false;
         }
 
-        return Storage::disk('public')->exists($path);
+        return Storage::disk('public')->exists($path) || is_file(public_path('storage/'.$path));
     }
 
     /**
