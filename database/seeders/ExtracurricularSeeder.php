@@ -10,28 +10,32 @@ class ExtracurricularSeeder extends Seeder
     public function run(): void
     {
         $items = [
-            ['Robotik & Pemrograman', 'Belajar merancang robot dan dasar pemrograman.', 'fa-robot'],
-            ['Desain Grafis', 'Latihan desain poster, ilustrasi, dan konten digital.', 'fa-palette'],
-            ['Futsal', 'Latihan rutin dan kompetisi antar sekolah.', 'fa-futbol'],
-            ['Bola Voli', 'Pembinaan tim putra dan putri.', 'fa-volleyball-ball'],
-            ['Pramuka', 'Kegiatan kepramukaan dan kemah bersama.', 'fa-campground'],
-            ['Seni Musik', 'Band sekolah dan latihan alat musik.', 'fa-music'],
-            ['English Club', 'Latihan percakapan dan public speaking.', 'fa-language'],
-            ['Kewirausahaan', 'Praktik usaha dan manajemen bisnis siswa.', 'fa-store'],
+            ['Musik', 'Pengembangan bakat seni musik, vokal, dan ansambel band sekolah.', 'fa-music'],
+            ['Futsal', 'Latihan teknik dasar, strategi tim, dan kompetisi futsal antar sekolah.', 'fa-futbol'],
+            ['Voli', 'Pembinaan teknik bermain bola voli serta kesiapan tim putra dan putri.', 'fa-volleyball-ball'],
+            ['Badminton', 'Latihan kelincahan, teknik pukulan, dan turnamen bulu tangkis pelajar.', 'fa-table-tennis'],
+            ['Tari', 'Pelestarian seni tari tradisional dan kreasi koreografi modern.', 'fa-theater-masks'],
+            ['English Fun Club', 'Latihan percakapan bahasa Inggris, storytelling, dan public speaking secara interaktif.', 'fa-language'],
+            ['PMR', 'Palang Merah Remaja: pembinaan kepedulian sosial, pertolongan pertama, dan kesehatan sekolah.', 'fa-first-aid'],
+            ['Hadroh', 'Seni musik islami rebana dan sholawat untuk pembinaan karakter religius siswa.', 'fa-drum'],
+            ['Kick Boxing', 'Latihan kebugaran, disiplin diri, dan teknik bela diri kick boxing.', 'fa-fist-raised'],
+            ['Content Creative', 'Produksi konten digital, fotografi, videografi, dan pengelolaan media kreatif.', 'fa-camera-retro'],
+            ['Pasukan Pengibar Bendera', 'Pembinaan baris-berbaris, kedisiplinan, kepemimpinan, dan tata upacara bendera.', 'fa-flag'],
+            ['Pramuka', 'Kegiatan kepramukaan, kemandirian, kepemimpinan, dan perkemahan bersama.', 'fa-campground'],
         ];
 
+        Extracurricular::query()->delete();
+
         foreach ($items as $order => [$name, $description, $icon]) {
-            Extracurricular::query()->firstOrCreate(
-                ['name' => $name],
-                [
-                    'description' => $description,
-                    'icon' => $icon,
-                    'sort_order' => $order + 1,
-                    'is_active' => true,
-                ],
-            );
+            Extracurricular::query()->create([
+                'name' => $name,
+                'description' => $description,
+                'icon' => $icon,
+                'sort_order' => $order + 1,
+                'is_active' => true,
+            ]);
         }
 
-        $this->command->info('ExtracurricularSeeder: data ekstrakurikuler siap.');
+        $this->command->info('ExtracurricularSeeder: 12 data ekstrakurikuler siap.');
     }
 }

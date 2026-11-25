@@ -22,7 +22,10 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             SiteContentSeeder::class,
             HomepageSettingsSeeder::class,
+            JurusanSeeder::class,
             ExtracurricularSeeder::class,
+            MitraSeeder::class,
+            BeritaSeeder::class,
         ]);
     }
 }
