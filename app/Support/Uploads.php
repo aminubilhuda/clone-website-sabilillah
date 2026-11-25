@@ -11,21 +11,31 @@ use App\Models\Popup;
 use App\Models\Post;
 use App\Models\Setting;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class Uploads
 {
     private const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'gif'];
 
+    private const COMPRESSIBLE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'];
+
+    private const MAX_IMAGE_BYTES = 950 * 1024;
+
+    private const MAX_IMAGE_DIMENSION = 1920;
+
     /**
-     * Stores an uploaded file on the public disk, or reuses an existing
-     * uploaded image path from `{field}_existing`. Returns the stored path.
+     * Stores an uploaded file on the public disk, compressing images to < 1 MB
+     * when needed, or reuses an existing uploaded image path from `{field}_existing`.
      */
     public static function file(Request $request, string $field, ?string $existing = null): ?string
     {
         if ($request->hasFile($field) && $request->file($field)->isValid()) {
-            $stored = $request->file($field)->store('uploads/'.now()->format('Ym'), 'public');
+            $uploaded = $request->file($field);
+            $directory = 'uploads/'.now()->format('Ym');
+            $stored = self::storeUploadedFile($uploaded, $directory);
 
             if ($existing !== $stored) {
                 self::delete($existing);
@@ -202,6 +212,117 @@ class Uploads
         }
 
         return Storage::disk('public')->exists($path) || is_file(public_path('storage/'.$path));
+    }
+
+    /**
+     * Menyimpan file upload ke disk publik; gambar > 950 KB dikompres otomatis agar < 1 MB.
+     */
+    private static function storeUploadedFile(UploadedFile $file, string $directory): string
+    {
+        $ext = strtolower($file->getClientOriginalExtension() ?: ($file->guessExtension() ?? ''));
+
+        if (
+            ! extension_loaded('gd')
+            || ! in_array($ext, self::COMPRESSIBLE_EXTENSIONS, true)
+            || ($file->getSize() !== false && $file->getSize() <= self::MAX_IMAGE_BYTES)
+        ) {
+            return $file->store($directory, 'public');
+        }
+
+        $raw = @file_get_contents($file->getRealPath());
+
+        if ($raw === false) {
+            return $file->store($directory, 'public');
+        }
+
+        $image = @imagecreatefromstring($raw);
+
+        if ($image === false) {
+            return $file->store($directory, 'public');
+        }
+
+        $image = self::fixOrientation($image, $file->getRealPath(), $ext);
+        $image = self::resizeToMax($image, self::MAX_IMAGE_DIMENSION);
+
+        $useWebp = function_exists('imagewebp');
+        $outExt = $useWebp ? 'webp' : 'jpg';
+        $binary = self::encodeUnderLimit($image, $useWebp, self::MAX_IMAGE_BYTES);
+
+        if ($binary === null) {
+            return $file->store($directory, 'public');
+        }
+
+        $path = $directory.'/'.Str::random(40).'.'.$outExt;
+        Storage::disk('public')->put($path, $binary);
+
+        return $path;
+    }
+
+    private static function fixOrientation(\GdImage $image, string $path, string $ext): \GdImage
+    {
+        if (! in_array($ext, ['jpg', 'jpeg'], true) || ! function_exists('exif_read_data')) {
+            return $image;
+        }
+
+        $exif = @exif_read_data($path);
+        $orientation = $exif['Orientation'] ?? null;
+
+        return match ($orientation) {
+            3 => imagerotate($image, 180, 0) ?: $image,
+            6 => imagerotate($image, -90, 0) ?: $image,
+            8 => imagerotate($image, 90, 0) ?: $image,
+            default => $image,
+        };
+    }
+
+    private static function resizeToMax(\GdImage $image, int $maxDim): \GdImage
+    {
+        $width = imagesx($image);
+        $height = imagesy($image);
+
+        if ($width <= $maxDim && $height <= $maxDim) {
+            imagealphablending($image, true);
+            imagesavealpha($image, true);
+
+            return $image;
+        }
+
+        $scale = min($maxDim / $width, $maxDim / $height);
+        $newWidth = max(1, (int) round($width * $scale));
+        $newHeight = max(1, (int) round($height * $scale));
+
+        $resized = imagecreatetruecolor($newWidth, $newHeight);
+        imagealphablending($resized, false);
+        imagesavealpha($resized, true);
+        $transparent = imagecolorallocatealpha($resized, 0, 0, 0, 127);
+        imagefill($resized, 0, 0, $transparent);
+        imagecopyresampled($resized, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+
+        return $resized;
+    }
+
+    private static function encodeUnderLimit(\GdImage $image, bool $useWebp, int $limitBytes): ?string
+    {
+        $current = $image;
+
+        for ($attempt = 0; $attempt < 3; $attempt++) {
+            foreach ([85, 75, 65, 55, 45, 35] as $quality) {
+                ob_start();
+                $ok = $useWebp
+                    ? imagewebp($current, null, $quality)
+                    : imagejpeg($current, null, $quality);
+                $data = ob_get_clean();
+
+                if ($ok && is_string($data) && strlen($data) <= $limitBytes) {
+                    return $data;
+                }
+            }
+
+            $nextMax = max(320, (int) round(max(imagesx($current), imagesy($current)) * 0.7));
+            $current = self::resizeToMax($current, $nextMax);
+        }
+
+        return null;
     }
 
     /**

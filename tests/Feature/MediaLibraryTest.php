@@ -113,4 +113,41 @@ class MediaLibraryTest extends TestCase
 
         Storage::disk('public')->assertMissing($path);
     }
+
+    public function test_large_uploaded_image_is_compressed_below_one_megabyte(): void
+    {
+        if (! extension_loaded('gd')) {
+            $this->markTestSkipped('GD extension not available.');
+        }
+
+        Storage::fake('public');
+
+        $admin = User::factory()->admin()->create();
+
+        // Create a noisy > 1 MB PNG image
+        $tmpPath = tempnam(sys_get_temp_dir(), 'bigimg_').'.png';
+        $img = imagecreatetruecolor(1800, 1200);
+        for ($y = 0; $y < 1200; $y += 2) {
+            for ($x = 0; $x < 1800; $x += 2) {
+                $color = imagecolorallocate($img, ($x * 37 + $y) % 256, ($y * 53) % 256, ($x + $y * 19) % 256);
+                imagesetpixel($img, $x, $y, $color);
+                imagesetpixel($img, $x + 1, $y, $color);
+            }
+        }
+        imagepng($img, $tmpPath, 0);
+
+        $this->assertGreaterThan(1024 * 1024, filesize($tmpPath));
+
+        $uploaded = new UploadedFile($tmpPath, 'foto-besar.png', 'image/png', null, true);
+
+        $this->actingAs($admin)
+            ->post(route('admin.media.store'), ['file' => $uploaded])
+            ->assertRedirect(route('admin.media.manage'));
+
+        @unlink($tmpPath);
+
+        $files = Storage::disk('public')->allFiles('uploads');
+        $this->assertCount(1, $files);
+        $this->assertLessThanOrEqual(1024 * 1024, Storage::disk('public')->size($files[0]));
+    }
 }
