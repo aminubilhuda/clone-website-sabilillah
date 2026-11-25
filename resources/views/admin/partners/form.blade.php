@@ -14,10 +14,13 @@
                 @endif
 
                 <div class="row g-3">
-                    <div class="col-md-4 text-center">
-                        <img src="{{ media_url($partner->logo_path, 'img/partner-1.svg') }}" class="img-fluid rounded border mb-2" alt="{{ $partner->name }}">
-                        <input type="file" name="logo" accept="image/*" class="form-control form-control-sm">
-                        <small class="text-muted d-block mt-1">Maks 10 MB.</small>
+                    <div class="col-md-4">
+                        @include('admin.components.media-picker', [
+                            'name' => 'logo',
+                            'current' => $partner->logo_path,
+                            'compact' => true,
+                            'hint' => 'Maks 10 MB.',
+                        ])
                     </div>
 
                     <div class="col-md-8">

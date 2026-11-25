@@ -110,6 +110,136 @@
         </div>
     </div>
 
+    <div class="modal fade" id="mediaPickerModal" tabindex="-1" aria-labelledby="mediaPickerModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="mediaPickerModalLabel">
+                        <i class="fa fa-images me-2 text-primary"></i>Pilih dari Media yang Pernah Diunggah
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <input type="search" id="mediaPickerSearch" class="form-control form-control-sm" placeholder="Cari nama file media...">
+                    </div>
+                    <div id="mediaPickerGrid" class="row g-2"></div>
+                    <div id="mediaPickerEmpty" class="text-center text-muted py-4 d-none">
+                        Belum ada media yang pernah diunggah. Silakan unggah gambar dari komputer terlebih dahulu.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const modalEl = document.getElementById('mediaPickerModal');
+            if (!modalEl) return;
+
+            const gridEl = document.getElementById('mediaPickerGrid');
+            const emptyEl = document.getElementById('mediaPickerEmpty');
+            const searchEl = document.getElementById('mediaPickerSearch');
+            const endpoint = @json(route('admin.media.index'));
+            let activePicker = null;
+            let cachedItems = null;
+
+            const renderItems = (items) => {
+                const q = (searchEl?.value || '').trim().toLowerCase();
+                const filtered = q ? items.filter(i => i.name.toLowerCase().includes(q) || i.path.toLowerCase().includes(q)) : items;
+
+                gridEl.innerHTML = '';
+                emptyEl.classList.toggle('d-none', filtered.length > 0);
+
+                filtered.forEach((item) => {
+                    const col = document.createElement('div');
+                    col.className = 'col-6 col-sm-4 col-md-3';
+
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'btn btn-outline-secondary w-100 p-2 text-start h-100 d-flex flex-column';
+
+                    const img = document.createElement('img');
+                    img.src = item.url;
+                    img.alt = item.name;
+                    img.className = 'rounded mb-2 w-100 object-fit-cover';
+                    img.style.height = '96px';
+
+                    const label = document.createElement('span');
+                    label.className = 'small text-truncate w-100 text-dark';
+                    label.textContent = item.name;
+
+                    btn.append(img, label);
+                    btn.addEventListener('click', () => {
+                        if (!activePicker) return;
+                        const fileInput = activePicker.querySelector('[data-media-file]');
+                        const existingInput = activePicker.querySelector('[data-media-existing]');
+                        const previewWrap = activePicker.querySelector('[data-media-preview-wrap]');
+                        const previewImg = activePicker.querySelector('[data-media-preview]');
+                        const badge = activePicker.querySelector('[data-media-badge]');
+
+                        if (fileInput) fileInput.value = '';
+                        if (existingInput) existingInput.value = item.path;
+                        if (previewImg) previewImg.src = item.url;
+                        if (previewWrap) previewWrap.style.removeProperty('display');
+                        if (badge) {
+                            badge.textContent = 'Dari media: ' + item.name;
+                            badge.classList.remove('d-none');
+                        }
+
+                        bootstrap.Modal.getInstance(modalEl)?.hide();
+                    });
+
+                    col.appendChild(btn);
+                    gridEl.appendChild(col);
+                });
+            };
+
+            document.addEventListener('change', (e) => {
+                const fileInput = e.target.closest('[data-media-file]');
+                if (!fileInput) return;
+                const picker = fileInput.closest('[data-media-picker]');
+                const existingInput = picker?.querySelector('[data-media-existing]');
+                const badge = picker?.querySelector('[data-media-badge]');
+                const previewWrap = picker?.querySelector('[data-media-preview-wrap]');
+                const previewImg = picker?.querySelector('[data-media-preview]');
+
+                if (existingInput) existingInput.value = '';
+                if (fileInput.files && fileInput.files[0]) {
+                    if (previewImg) previewImg.src = URL.createObjectURL(fileInput.files[0]);
+                    if (previewWrap) previewWrap.style.removeProperty('display');
+                    if (badge) {
+                        badge.textContent = 'Dari komputer: ' + fileInput.files[0].name;
+                        badge.classList.remove('d-none');
+                    }
+                }
+            });
+
+            modalEl.addEventListener('show.bs.modal', async (event) => {
+                activePicker = event.relatedTarget?.closest('[data-media-picker]') || null;
+                if (searchEl) searchEl.value = '';
+
+                if (cachedItems === null) {
+                    gridEl.innerHTML = '<div class="col-12 text-center text-muted py-4">Memuat media...</div>';
+                    emptyEl.classList.add('d-none');
+                    try {
+                        const res = await fetch(endpoint, { headers: { 'Accept': 'application/json' } });
+                        const data = await res.json();
+                        cachedItems = Array.isArray(data.items) ? data.items : [];
+                    } catch {
+                        cachedItems = [];
+                    }
+                }
+
+                renderItems(cachedItems);
+            });
+
+            searchEl?.addEventListener('input', () => {
+                if (cachedItems) renderItems(cachedItems);
+            });
+        });
+    </script>
+
     @yield('skrip')
     @stack('skrip')
 </body>

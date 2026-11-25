@@ -17,15 +17,11 @@
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label d-block" for="gambar">Gambar popup (maks 10 MB)</label>
-                        <input type="file" id="gambar" name="image" accept="image/*" class="form-control">
-
-                        @error('image')
-                            <div class="text-danger small mt-1">{{ $message }}</div>
-                        @enderror
-
-                        @if ($popup->exists)
-                            <img src="{{ media_url($popup->image, 'img/popup-ppdb.svg') }}" class="img-fluid rounded mt-2" alt="Popup sekarang">
-                        @endif
+                        @include('admin.components.media-picker', [
+                            'name' => 'image',
+                            'id' => 'gambar',
+                            'current' => $popup->exists ? $popup->image : null,
+                        ])
                     </div>
 
                     <div class="col-md-8">

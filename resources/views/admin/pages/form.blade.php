@@ -78,12 +78,12 @@
                         <input type="text" id="gambar" name="gambar" value="{{ old('gambar', $blocks['gambar'] ?? '') }}"
                             class="form-control" placeholder="img/nama-gambar.svg atau upload di bawah">
 
-                        <label class="form-label mt-2" for="gambar_file">Atau upload gambar halaman</label>
-                        <input type="file" id="gambar_file" name="gambar_file" accept="image/*" class="form-control">
-
-                        @if (! empty($blocks['gambar']))
-                            <img src="{{ media_url($blocks['gambar']) }}" alt="Gambar halaman" class="img-fluid rounded mt-2" style="max-height: 120px;">
-                        @endif
+                        <label class="form-label mt-2" for="gambar_file">Atau upload / pilih gambar halaman</label>
+                        @include('admin.components.media-picker', [
+                            'name' => 'gambar_file',
+                            'id' => 'gambar_file',
+                            'current' => $blocks['gambar'] ?? null,
+                        ])
                     </div>
                 </div>
 

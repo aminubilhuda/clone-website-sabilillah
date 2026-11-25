@@ -50,7 +50,11 @@
 
                             <div class="col-md-6">
                                 <label class="form-label" for="sampul-album">Sampul album (maks 10 MB)</label>
-                                <input type="file" id="sampul-album" name="cover" accept="image/*" class="form-control">
+                                @include('admin.components.media-picker', [
+                                    'name' => 'cover',
+                                    'id' => 'sampul-album',
+                                    'current' => $album->cover_image,
+                                ])
                             </div>
                         </div>
 
@@ -92,8 +96,12 @@
                     @csrf
 
                     <div class="col-md-3">
-                        <label class="form-label" for="media-file">Unggah gambar (maks 10 MB)</label>
-                        <input type="file" id="media-file" name="media_file" accept="image/*" class="form-control">
+                        <label class="form-label" for="media-file">Unggah / pilih gambar (maks 10 MB)</label>
+                        @include('admin.components.media-picker', [
+                            'name' => 'media_file',
+                            'id' => 'media-file',
+                            'compact' => true,
+                        ])
                     </div>
 
                     <div class="col-md-3">

@@ -41,11 +41,11 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label" for="gambar-sampul">Sampul gambar (16:9 disarankan, maks 10 MB)</label>
-                                <input type="file" id="gambar-sampul" name="cover_image" accept="image/*" class="form-control">
-
-                                @error('cover_image')
-                                    <div class="text-danger small mt-1">{{ $message }}</div>
-                                @enderror
+                                @include('admin.components.media-picker', [
+                                    'name' => 'cover_image',
+                                    'id' => 'gambar-sampul',
+                                    'current' => $post->cover_image,
+                                ])
                             </div>
 
                             <div class="col-md-6">

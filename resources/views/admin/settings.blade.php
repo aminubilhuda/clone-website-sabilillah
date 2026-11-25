@@ -40,16 +40,10 @@
                                 class="border rounded bg-white p-1" style="height: 64px; width: auto;">
 
                             <div class="flex-grow-1" style="min-width: 240px;">
-                                <input type="file" name="logo" accept="image/*" class="form-control @error('logo') is-invalid @enderror">
-
-                                @error('logo')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-
-                                <small class="text-muted">
-                                    SVG, PNG, JPG, atau WebP — maksimal 5 MB. Disarankan latar transparan dan rasio mendatar.
-                                    Logo ini dipakai di navbar, footer, panel admin, dan favicon.
-                                </small>
+                                @include('admin.components.media-picker', [
+                                    'name' => 'logo',
+                                    'hint' => 'PNG, JPG, atau WebP — maksimal 5 MB. Disarankan latar transparan dan rasio mendatar. Logo ini dipakai di navbar, footer, panel admin, dan favicon.',
+                                ])
                             </div>
                         </div>
                     </div>
@@ -64,15 +58,10 @@
                                 class="border rounded bg-white p-1" style="height: 90px; width: auto; max-width: 220px; object-fit: cover;">
 
                             <div class="flex-grow-1" style="min-width: 240px;">
-                                <input type="file" name="sekilas_gambar" accept="image/*" class="form-control @error('sekilas_gambar') is-invalid @enderror">
-
-                                @error('sekilas_gambar')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-
-                                <small class="text-muted">
-                                    Foto yang tampil di section "Sekilas Sekolah" pada beranda. Maksimal 5 MB.
-                                </small>
+                                @include('admin.components.media-picker', [
+                                    'name' => 'sekilas_gambar',
+                                    'hint' => 'Foto yang tampil di section "Sekilas Sekolah" pada beranda. Maksimal 5 MB.',
+                                ])
                             </div>
                         </div>
                     </div>
@@ -87,13 +76,10 @@
                                 class="border rounded bg-white p-1" style="height: 70px; width: auto; max-width: 240px; object-fit: cover;">
 
                             <div class="flex-grow-1" style="min-width: 240px;">
-                                <input type="file" name="banner_image_file" accept="image/*" class="form-control @error('banner_image_file') is-invalid @enderror">
-
-                                @error('banner_image_file')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-
-                                <small class="text-muted">Gambar strip banner PPDB di beranda. Maksimal 5 MB.</small>
+                                @include('admin.components.media-picker', [
+                                    'name' => 'banner_image_file',
+                                    'hint' => 'Gambar strip banner PPDB di beranda. Maksimal 5 MB.',
+                                ])
                             </div>
                         </div>
                     </div>

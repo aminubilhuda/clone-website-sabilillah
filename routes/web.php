@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ExtracurricularController;
 use App\Http\Controllers\Admin\FaqController;
+use App\Http\Controllers\Admin\MediaLibraryController;
 use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Admin\PageController as PageAdminController;
 use App\Http\Controllers\Admin\PartnerController;
@@ -138,6 +139,7 @@ Route::prefix('admin')
 
         Route::get('pengaturan', [SettingController::class, 'edit'])->name('settings.edit');
         Route::put('pengaturan', [SettingController::class, 'update'])->name('settings.update');
+        Route::get('media-library', [MediaLibraryController::class, 'index'])->name('media.index');
 
         Route::middleware('can:manage-users')->group(function (): void {
             Route::resource('users', UserController::class)->except('show');

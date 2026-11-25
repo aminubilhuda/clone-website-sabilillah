@@ -158,7 +158,7 @@ class SettingController extends Controller
             }
         }
 
-        if ($request->hasFile('logo')) {
+        if ($request->hasFile('logo') || $request->filled('logo_existing')) {
             $logo = Uploads::file($request, 'logo', strval(setting('logo', '')));
 
             Setting::query()->updateOrCreate(
@@ -167,7 +167,7 @@ class SettingController extends Controller
             );
         }
 
-        if ($request->hasFile('sekilas_gambar')) {
+        if ($request->hasFile('sekilas_gambar') || $request->filled('sekilas_gambar_existing')) {
             $gambar = Uploads::file($request, 'sekilas_gambar', strval(setting('sekilas_gambar', '')));
 
             Setting::query()->updateOrCreate(
@@ -176,7 +176,7 @@ class SettingController extends Controller
             );
         }
 
-        if ($request->hasFile('banner_image_file')) {
+        if ($request->hasFile('banner_image_file') || $request->filled('banner_image_file_existing')) {
             $banner = Uploads::file($request, 'banner_image_file', strval(setting('banner_image', '')));
 
             Setting::query()->updateOrCreate(

@@ -70,7 +70,11 @@
                         </select>
 
                         <label class="form-label mt-3" for="mitra-logo">Logo (maks 10 MB)</label>
-                        <input type="file" id="mitra-logo" name="logo" accept="image/*" class="form-control">
+                        @include('admin.components.media-picker', [
+                            'name' => 'logo',
+                            'id' => 'mitra-logo',
+                            'compact' => true,
+                        ])
 
                         <label class="form-label mt-3" for="mitra-url">Situs web (opsional)</label>
                         <input type="text" id="mitra-url" name="website_url" value="{{ old('website_url') }}" class="form-control">

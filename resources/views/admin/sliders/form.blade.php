@@ -18,15 +18,11 @@
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label d-block" for="gambar">Gambar slider (disarankan 1920×1080, maks 10 MB)</label>
-                        <input type="file" id="gambar" name="image" accept="image/*" class="form-control">
-
-                        @error('image')
-                            <div class="text-danger small mt-1">{{ $message }}</div>
-                        @enderror
-
-                        @if ($slider->exists)
-                            <img src="{{ media_url($slider->image, 'img/hero-1.svg') }}" class="img-fluid rounded mt-2" alt="Gambar saat ini">
-                        @endif
+                        @include('admin.components.media-picker', [
+                            'name' => 'image',
+                            'id' => 'gambar',
+                            'current' => $slider->exists ? $slider->image : null,
+                        ])
                     </div>
 
                     <div class="col-md-8">
