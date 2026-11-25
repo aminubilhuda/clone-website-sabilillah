@@ -41,9 +41,9 @@
                 <div class="col-lg-7">
                     <h3 class="sub-title-bar mb-4">{{ setting('kontak_judul_peta', 'Peta Lokasi') }}</h3>
 
-                    @if (filled($gmapsEmbed))
+                    @if (filled($gmapsEmbed) && str_starts_with((string) $gmapsEmbed, 'https://'))
                         <div class="ratio ratio-16x9 rounded overflow-hidden shadow-sm">
-                            <iframe src="{{ $gmapsEmbed }}" style="border:0;" allowfullscreen loading="lazy" title="Peta sekolah"></iframe>
+                            <iframe src="{{ $gmapsEmbed }}" style="border:0;" sandbox="allow-scripts allow-same-origin allow-popups" referrerpolicy="no-referrer-when-downgrade" allowfullscreen loading="lazy" title="Peta sekolah"></iframe>
                         </div>
                     @else
                         <div class="alert alert-warning">Petakan Google Maps belum dikonfigurasi panel admin (setel key <code>gmaps_embed</code> di Pengaturan).</div>

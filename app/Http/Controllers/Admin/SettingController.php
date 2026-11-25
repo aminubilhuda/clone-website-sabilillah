@@ -119,16 +119,18 @@ class SettingController extends Controller
             'tampilan::warna_gelap' => ['nullable', 'regex:/^#?[0-9a-fA-F]{6}$/'],
             'tampilan::warna_navy' => ['nullable', 'regex:/^#?[0-9a-fA-F]{6}$/'],
             'tampilan::warna_lembut' => ['nullable', 'regex:/^#?[0-9a-fA-F]{6}$/'],
-            'logo' => ['nullable', 'file', 'mimetypes:image/svg+xml,image/png,image/jpeg,image/webp', 'max:5120'],
-            'sekilas_gambar' => ['nullable', 'file', 'mimetypes:image/svg+xml,image/png,image/jpeg,image/webp', 'max:5120'],
-            'banner_image_file' => ['nullable', 'file', 'mimetypes:image/svg+xml,image/png,image/jpeg,image/webp', 'max:5120'],
+            'umum::gmaps_embed' => ['nullable', 'url:https', 'max:1000'],
+            'logo' => ['nullable', 'image', 'mimetypes:image/png,image/jpeg,image/webp', 'max:5120'],
+            'sekilas_gambar' => ['nullable', 'image', 'mimetypes:image/png,image/jpeg,image/webp', 'max:5120'],
+            'banner_image_file' => ['nullable', 'image', 'mimetypes:image/png,image/jpeg,image/webp', 'max:5120'],
         ], [
             'tampilan::warna_primer.regex' => 'Warna harus dalam format hex, contoh #1B5FAA.',
             'tampilan::warna_gelap.regex' => 'Warna harus dalam format hex, contoh #0E3D73.',
             'tampilan::warna_navy.regex' => 'Warna harus dalam format hex, contoh #072A52.',
             'tampilan::warna_lembut.regex' => 'Warna harus dalam format hex, contoh #E7F0FA.',
-            'logo.mimetypes' => 'Logo harus berupa SVG, PNG, JPG, atau WebP.',
-            'logo.max' => 'Ukuran logo maksimal 2 MB.',
+            'umum::gmaps_embed.url' => 'URL Google Maps embed harus menggunakan skema https:// yang valid.',
+            'logo.mimetypes' => 'Logo harus berupa PNG, JPG, atau WebP.',
+            'logo.max' => 'Ukuran logo maksimal 5 MB.',
         ]);
 
         foreach (array_keys($this->fields) as $group) {

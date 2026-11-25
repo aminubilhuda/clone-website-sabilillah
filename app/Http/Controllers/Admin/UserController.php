@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class UserController extends Controller
@@ -54,12 +56,29 @@ class UserController extends Controller
     public function update(Request $request, User $user): RedirectResponse
     {
         $validated = $this->validated($request);
+        $passwordChanged = filled($validated['password'] ?? null);
 
-        if (blank($validated['password'] ?? null)) {
+        if (! $passwordChanged) {
             unset($validated['password']);
         }
 
         $user->update($validated);
+
+        if ($passwordChanged) {
+            $user->setRememberToken(Str::random(60));
+            $user->save();
+        }
+
+        if ($passwordChanged && config('session.driver') === 'database') {
+            $query = DB::table(config('session.table', 'sessions'))
+                ->where('user_id', $user->id);
+
+            if ($request->user()->is($user)) {
+                $query->where('id', '!=', $request->session()->getId());
+            }
+
+            $query->delete();
+        }
 
         return redirect()->route('admin.users.index')->with('success', 'Pengguna berhasil diperbarui.');
     }

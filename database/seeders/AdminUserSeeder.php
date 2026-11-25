@@ -13,12 +13,21 @@ class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
+        $isLocalOrTesting = app()->environment(['local', 'testing']);
+
+        $adminPassword = env('ADMIN_SEED_PASSWORD') ?: ($isLocalOrTesting ? 'password' : null);
+        $editorPassword = env('EDITOR_SEED_PASSWORD') ?: ($isLocalOrTesting ? 'password' : null);
+
+        if (blank($adminPassword) || blank($editorPassword)) {
+            throw new \RuntimeException('ADMIN_SEED_PASSWORD and EDITOR_SEED_PASSWORD must be set when running AdminUserSeeder outside local/testing.');
+        }
+
         $admin = User::query()->firstOrCreate(
             ['email' => 'admin@smkabdinegara.sch.id'],
             [
                 'name' => 'Admin Abdi Negara',
                 'username' => 'admin',
-                'password' => 'password',
+                'password' => $adminPassword,
                 'role' => 'admin',
             ],
         );
@@ -32,7 +41,7 @@ class AdminUserSeeder extends Seeder
             [
                 'name' => 'Editor Abdi Negara',
                 'username' => 'editor',
-                'password' => 'password',
+                'password' => $editorPassword,
                 'role' => 'editor',
             ],
         );

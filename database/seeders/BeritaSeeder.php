@@ -15,11 +15,17 @@ class BeritaSeeder extends Seeder
         $author = User::query()->firstWhere('role', 'admin') ?? User::query()->first();
 
         if (! $author) {
+            $password = env('ADMIN_SEED_PASSWORD') ?: (app()->environment(['local', 'testing']) ? 'password' : null);
+
+            if (blank($password)) {
+                throw new \RuntimeException('No existing user found and ADMIN_SEED_PASSWORD is not set.');
+            }
+
             $author = User::query()->create([
                 'name' => 'Admin Sekolah',
                 'username' => 'admin',
                 'email' => 'admin@smkabdinegara.sch.id',
-                'password' => 'password',
+                'password' => $password,
                 'role' => 'admin',
             ]);
         }

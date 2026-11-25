@@ -119,7 +119,7 @@ class PageController extends Controller
             'keunggulan' => ['nullable', 'string'],
             'prospek' => ['nullable', 'string'],
             'gambar' => ['nullable', 'string', 'max:255'],
-            'gambar_file' => ['nullable', 'file', 'mimetypes:image/svg+xml,image/png,image/jpeg,image/webp', 'max:5120'],
+            'gambar_file' => ['nullable', 'image', 'mimetypes:image/png,image/jpeg,image/webp', 'max:5120'],
             'blocks_text' => ['nullable', 'string'],
         ]);
 

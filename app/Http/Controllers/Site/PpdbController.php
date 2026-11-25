@@ -12,6 +12,7 @@ use App\Models\PpdbWave;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class PpdbController extends Controller
 {
@@ -69,6 +70,12 @@ class PpdbController extends Controller
         ]);
 
         $wave = isset($validated['wave_id']) ? PpdbWave::query()->find($validated['wave_id']) : null;
+
+        if ($wave !== null && (! $wave->is_active || $wave->status() !== 'aktif')) {
+            throw ValidationException::withMessages([
+                'wave_id' => 'Gelombang pendaftaran yang dipilih tidak aktif atau sudah ditutup.',
+            ]);
+        }
 
         $applicant = PpdbApplicant::query()->create([
             'wave_id' => $wave?->id,
