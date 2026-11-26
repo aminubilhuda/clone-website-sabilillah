@@ -222,31 +222,116 @@ class Uploads
         $ext = strtolower($file->getClientOriginalExtension() ?: ($file->guessExtension() ?? ''));
 
         if (
-            ! extension_loaded('gd')
-            || ! in_array($ext, self::COMPRESSIBLE_EXTENSIONS, true)
+            ! in_array($ext, self::COMPRESSIBLE_EXTENSIONS, true)
             || ($file->getSize() !== false && $file->getSize() <= self::MAX_IMAGE_BYTES)
         ) {
             return $file->store($directory, 'public');
         }
 
-        $raw = @file_get_contents($file->getRealPath());
+        $realPath = $file->getRealPath();
 
-        if ($raw === false) {
+        if ($realPath === false) {
             return $file->store($directory, 'public');
         }
 
-        $image = @imagecreatefromstring($raw);
+        if (extension_loaded('imagick')) {
+            $imagickPath = self::compressWithImagick($realPath, $directory);
+
+            if ($imagickPath !== null) {
+                return $imagickPath;
+            }
+        }
+
+        if (! extension_loaded('gd')) {
+            return $file->store($directory, 'public');
+        }
+
+        return self::compressWithGd($file, $realPath, $ext, $directory);
+    }
+
+    private static function compressWithImagick(string $realPath, string $directory): ?string
+    {
+        try {
+            $imagick = new \Imagick($realPath);
+            $imagick->autoOrient();
+
+            $width = $imagick->getImageWidth();
+            $height = $imagick->getImageHeight();
+
+            if ($width > self::MAX_IMAGE_DIMENSION || $height > self::MAX_IMAGE_DIMENSION) {
+                $imagick->thumbnailImage(self::MAX_IMAGE_DIMENSION, self::MAX_IMAGE_DIMENSION, true);
+            }
+
+            $formats = method_exists(\Imagick::class, 'queryFormats') ? \Imagick::queryFormats('WEBP') : [];
+            $useWebp = ! empty($formats);
+            $outExt = $useWebp ? 'webp' : 'jpg';
+
+            $imagick->setImageFormat($useWebp ? 'webp' : 'jpeg');
+            $imagick->stripImage();
+
+            for ($attempt = 0; $attempt < 3; $attempt++) {
+                foreach ([85, 75, 65, 55, 45, 35] as $quality) {
+                    $imagick->setImageCompressionQuality($quality);
+                    $binary = $imagick->getImageBlob();
+
+                    if (strlen($binary) <= self::MAX_IMAGE_BYTES) {
+                        $path = $directory.'/'.Str::random(40).'.'.$outExt;
+                        Storage::disk('public')->put($path, $binary);
+                        $imagick->clear();
+
+                        return $path;
+                    }
+                }
+
+                $nextMax = max(320, (int) round(max($imagick->getImageWidth(), $imagick->getImageHeight()) * 0.7));
+                $imagick->thumbnailImage($nextMax, $nextMax, true);
+            }
+
+            $imagick->clear();
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return null;
+    }
+
+    private static function compressWithGd(UploadedFile $file, string $realPath, string $ext, string $directory): string
+    {
+        $info = @getimagesize($realPath);
+
+        if ($info === false) {
+            return $file->store($directory, 'public');
+        }
+
+        [$width, $height] = $info;
+        $estimatedBytes = $width * $height * 5;
+
+        self::ensureMemoryFor($estimatedBytes);
+
+        $limit = self::memoryLimitBytes();
+
+        if ($limit > 0 && ($estimatedBytes + memory_get_usage(true)) > $limit * 0.85) {
+            return $file->store($directory, 'public');
+        }
+
+        $image = match ($info['mime'] ?? '') {
+            'image/jpeg' => @imagecreatefromjpeg($realPath),
+            'image/png' => @imagecreatefrompng($realPath),
+            'image/webp' => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($realPath) : false,
+            default => false,
+        };
 
         if ($image === false) {
             return $file->store($directory, 'public');
         }
 
-        $image = self::fixOrientation($image, $file->getRealPath(), $ext);
+        $image = self::fixOrientation($image, $realPath, $ext);
         $image = self::resizeToMax($image, self::MAX_IMAGE_DIMENSION);
 
         $useWebp = function_exists('imagewebp');
         $outExt = $useWebp ? 'webp' : 'jpg';
         $binary = self::encodeUnderLimit($image, $useWebp, self::MAX_IMAGE_BYTES);
+        unset($image);
 
         if ($binary === null) {
             return $file->store($directory, 'public');
@@ -258,6 +343,41 @@ class Uploads
         return $path;
     }
 
+    private static function ensureMemoryFor(int $estimatedBytes): void
+    {
+        $current = self::memoryLimitBytes();
+
+        if ($current <= 0) {
+            return;
+        }
+
+        $needed = memory_get_usage(true) + $estimatedBytes + (32 * 1024 * 1024);
+
+        if ($needed > $current) {
+            $targetMb = min(512, (int) ceil($needed / (1024 * 1024)));
+            @ini_set('memory_limit', $targetMb.'M');
+        }
+    }
+
+    private static function memoryLimitBytes(): int
+    {
+        $raw = trim((string) ini_get('memory_limit'));
+
+        if ($raw === '' || $raw === '-1') {
+            return -1;
+        }
+
+        $unit = strtolower(substr($raw, -1));
+        $value = (int) $raw;
+
+        return match ($unit) {
+            'g' => $value * 1024 * 1024 * 1024,
+            'm' => $value * 1024 * 1024,
+            'k' => $value * 1024,
+            default => $value,
+        };
+    }
+
     private static function fixOrientation(\GdImage $image, string $path, string $ext): \GdImage
     {
         if (! in_array($ext, ['jpg', 'jpeg'], true) || ! function_exists('exif_read_data')) {
@@ -267,12 +387,20 @@ class Uploads
         $exif = @exif_read_data($path);
         $orientation = $exif['Orientation'] ?? null;
 
-        return match ($orientation) {
-            3 => imagerotate($image, 180, 0) ?: $image,
-            6 => imagerotate($image, -90, 0) ?: $image,
-            8 => imagerotate($image, 90, 0) ?: $image,
-            default => $image,
+        $rotated = match ($orientation) {
+            3 => imagerotate($image, 180, 0),
+            6 => imagerotate($image, -90, 0),
+            8 => imagerotate($image, 90, 0),
+            default => false,
         };
+
+        if ($rotated instanceof \GdImage) {
+            unset($image);
+
+            return $rotated;
+        }
+
+        return $image;
     }
 
     private static function resizeToMax(\GdImage $image, int $maxDim): \GdImage
@@ -297,6 +425,7 @@ class Uploads
         $transparent = imagecolorallocatealpha($resized, 0, 0, 0, 127);
         imagefill($resized, 0, 0, $transparent);
         imagecopyresampled($resized, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+        unset($image);
 
         return $resized;
     }
